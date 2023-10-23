@@ -43,6 +43,7 @@ defineProps({
     background: var(--secondary);
     padding: 1rem;
     height: 6rem;
+    width: 100%;
     border-radius: 1.5rem;
     cursor: pointer;
 }

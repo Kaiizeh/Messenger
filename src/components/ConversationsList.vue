@@ -30,7 +30,7 @@ import ConversationCard from './ui/ConversationCard.vue';
 }
 .input-research {
     height: 3rem;
-    width: 20rem;
+    width: 90%;
     background: var(--secondary);
     border-radius: .7rem;
     margin: auto;
