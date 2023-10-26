@@ -25,8 +25,8 @@ import ConversationCard from './ui/ConversationCard.vue';
 <style scoped>
 .cl__container {
     height: 100%;
-    padding: 1.25rem;
-    width: 25rem;
+    width: 20rem;
+    margin-right: 1rem;
 }
 .input-research {
     height: 3rem;

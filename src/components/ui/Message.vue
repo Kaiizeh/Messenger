@@ -1,15 +1,49 @@
 <script setup>
-    import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import { faCheckDouble } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import { inject } from 'vue';
+
+const { userID } = inject("AppProvider");
+const props = defineProps({
+    message: Object
+});
+
+const isAuthor = () => props.message.authorID === userID.value;
+
+const getTime = () => {
+    const time = new Date(props.message.createdAt)
+    return time.toLocaleDateString() === new Date().toLocaleDateString() ? time.toLocaleTimeString().slice(0, time.toLocaleTimeString().length - 3) : time.toLocaleDateString();
+}
+
 </script>
 
 <template>
-    <div class="m__container">
-
+    <div class="chat" :class="{'chat-end': isAuthor(), 'chat-start': !isAuthor()}">
+        <div class="chat-image avatar">
+            <div class="w-10 rounded-full">
+                <img src="https://picsum.photos/300/300" />
+            </div>
+        </div>
+        <div class="chat-header">
+            {{ message.author ?? "undefined" }}
+            <time class="text-xs opacity-50">{{ getTime() }}</time>
+        </div>
+        <div class="chat-bubble" :class="{'author': isAuthor(), 'sender': !isAuthor()}">{{ message.content ?? "no message" }}</div>
     </div>
 </template>
 
-<style scoped>
-    .m__container {
-        width: 100%;
-    }
+<style lang="scss" scoped>
+
+.sender {
+    background: var(--info);
+}
+
+.author {
+    background: var(--secondary);
+}
+
+.chat-bubble {
+    font-size: 1.2rem;
+}
+
 </style>
