@@ -25,7 +25,7 @@ const getTime = () => {
             </div>
         </div>
         <div class="chat-header">
-            {{ message.author ?? "undefined" }}
+            {{ message.author }}
             <time class="text-xs opacity-50">{{ getTime() }}</time>
         </div>
         <div class="chat-bubble" :class="{'author': isAuthor(), 'sender': !isAuthor()}">{{ message.content ?? "no message" }}</div>
@@ -35,11 +35,11 @@ const getTime = () => {
 <style lang="scss" scoped>
 
 .sender {
-    background: var(--info);
+    background: var(--secondary);
 }
 
 .author {
-    background: var(--secondary);
+    background: var(--info);
 }
 
 .chat-bubble {

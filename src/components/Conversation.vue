@@ -3,37 +3,42 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { faEllipsisVertical, faMattressPillow, faMicrophone, faPaperclip, faPhone, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { faPaperPlane } from '@fortawesome/free-regular-svg-icons';
 import Message from './ui/Message.vue';
-import { inject, onMounted, ref } from 'vue';
+import { inject, onMounted, onUpdated, ref, watch } from 'vue';
 
 const props = defineProps({
-    title: String,
-    description: String,
-    room: String
+    room: Object,
 });
 
-const { userID, socket } = inject("AppProvider");
+const { userID, socket, username } = inject("AppProvider");
 
 const messages = ref([]);
 const messageContent = ref();
 
+watch(props, () => {
+    console.log(props.room);
+    socket.emit("joinRoom", props.room.id);
+    messages.value = props.room.messages;
+});
+
 onMounted(() => {
-    socket.emit('joinRoom', props.room);
+    messages.value = props.room.messages;
+    socket.emit("joinRoom", props.room.id);
     socket.on("receivedMessage", (message) => {
         messages.value.unshift(message);
-        socket.emit("seeMessage", new Date(), props.room);
+        socket.emit("seeMessage", new Date(), props.room.id);
     });
 });
 
 const sendMessage = () => {
     const message = createMessagePayload()
-    socket.emit("sendMessage", message, props.room);
+    socket.emit("sendMessage", message, props.room.id);
     messages.value.unshift(message);
     messageContent.value = "";
 }
 
 const createMessagePayload = () => ({
     authorID: userID.value,
-    author: "Kéziah THIBO",
+    author: username.value,
     content: messageContent.value,
     createdAt: new Date()
 })
@@ -45,8 +50,8 @@ const createMessagePayload = () => ({
     <div class="c__container">
         <div class="flex w-full justify-between">
             <div class="flex flex-col w-[70%]">
-                <div class="c__title">{{ title }}</div>
-                <div class="c__subtitle">{{ description }}</div>
+                <div class="c__title">{{ room?.name }}</div>
+                <div class="c__subtitle">{{ room?.membersInfo }}</div>
             </div>
             <div class="c__actions">
                 <button class="btn btn-ghost text-2xl hover:text-white">
@@ -67,7 +72,7 @@ const createMessagePayload = () => ({
             <Message :message="message" v-for="message in messages"/>
         </div>
         <div class="c__input-container">
-            <button class="me-2">
+            <button class="me-2" @click="() => socket.emit('joinRooms')">
                 <FontAwesomeIcon :icon="faPaperclip" />
             </button>
             <div class="c__input">
@@ -87,7 +92,7 @@ const createMessagePayload = () => ({
 
 <style lang="scss" scoped>
 .c__container {
-    width: 100%;
+    width: calc(100% - 20rem);
     height: calc(100vh - 2rem);
     display: flex;
     flex-direction: column;

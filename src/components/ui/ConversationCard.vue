@@ -8,29 +8,38 @@ defineProps({
     lastMessage: String,
     notificationNumber: Number,
     isSaw: Boolean,
-    isPin: Boolean
+    isPin: Boolean,
+    isSelected: Boolean
 });
+
+const truncate = (text, maxLength) => {
+    if(!text) return;
+    if (text.length > maxLength) {
+        return text.slice(0, maxLength) + '...';
+    }
+    return text;
+}
 
 </script>
 
 <template>
-    <div class="cc__container">
+    <div class="cc__container" :class="{ 'active': isSelected}">
         <div class="cc__image">
-            <img src="https://picsum.photos/300/300"/>
+            <img src="https://picsum.photos/300/300" />
         </div>
         <div class="cc__content">
             <div class="cc__title">
-                <span>{{ roomName }}</span>
-                <div>
-                    <FontAwesomeIcon :icon="faCheckDouble" class="me-2"/>
+                <span>{{ truncate(roomName, 12) }}</span>
+                <div class="flex items-center">
+                    <FontAwesomeIcon :icon="faCheckDouble" class="me-2" v-if="isSaw" />
                     <span>{{ lastUpdate }}</span>
                 </div>
             </div>
             <div class="cc__description">
-                <span class="cc__lastMessage">{{ lastMessage }}</span>
+                <span class="cc__lastMessage">{{ truncate(lastMessage, 12) }}</span>
                 <div class="flex justify-center items-center">
-                    <div class="cc__notification"> {{ notificationNumber }}</div>
-                    <FontAwesomeIcon :icon="faThumbTack" v-if="isPin" class="ms-2"/>
+                    <div class="cc__notification" v-if="notificationNumber && notificationNumber > 0"> {{ notificationNumber }}</div>
+                    <FontAwesomeIcon :icon="faThumbTack" v-if="isPin" class="ms-2" />
                 </div>
             </div>
         </div>
@@ -40,7 +49,6 @@ defineProps({
 <style scoped>
 .cc__container {
     display: flex;
-    background: var(--secondary);
     padding: 1rem;
     height: 6rem;
     width: 100%;
@@ -56,8 +64,8 @@ defineProps({
     margin-right: 1rem;
 }
 
-.cc__image > img {
-    object-fit:fill;
+.cc__image>img {
+    object-fit: fill;
 }
 
 .cc__content {
@@ -74,11 +82,11 @@ defineProps({
     font-size: 18px;
 }
 
-.cc__title > div {
+.cc__title>div {
     font-size: 14px;
 }
 
-.cc__title > div > svg {
+.cc__title>div>svg {
     color: var(--gray-200);
 }
 
