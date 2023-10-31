@@ -7,47 +7,44 @@ import { io } from "socket.io-client";
 import Modal from './components/ui/Modal.vue';
 
 const currentRoom = ref();
-const rooms = ref();
-const userID = ref();
-const username = ref();
+const user = ref({});
 const needName = ref(false);
+const isCreateRoom = ref(false);
 const socket = io("http://localhost:3000", {
   transports: ["websocket", "polling"],
 });
 
 provide("AppProvider", {
-  userID,
-  username,
+  user,
   currentRoom,
+  isCreateRoom,
   socket
 });
 
 onMounted(() => {
-  userID.value = window.localStorage.getItem("userID");
-  if (!userID.value) {
-    userID.value = uuidv4();
-    window.localStorage.setItem("userID", userID.value);
+  user.value.id = window.localStorage.getItem("userID");
+  if (!user.value.id) {
+    user.value.id = uuidv4();
+    window.localStorage.setItem("userID", user.value.id);
   }
 
-  socket.emit("initialization", userID.value);
+  socket.emit("initialization", user.value.id);
 
-  socket.on("getUser", (user) => {
-    if (!user) {
+  socket.on("getUser", (pUser) => {
+    if (!pUser) {
       needName.value = true;
       return;
     }
-    userID.value = user.id;
-    username.value = user.name;
+    user.value = pUser;
   });
 });
 
 const handleConfirm = () => {
   if (username.value.length < 3) return;
-  window.localStorage.setItem("username", username.value);
   const user = {
-    name: username.value,
-    id: userID.value,
-    roomsID: []
+    name: user.value.name,
+    id: user.value.id,
+    rooms: []
   };
   socket.emit("createUser", user);
   needName.value = false;
@@ -58,8 +55,8 @@ const handleConfirm = () => {
 
 <template>
   <div class="container-app">
-    <RoomList :rooms="rooms" />
-    <Conversation :room="currentRoom" v-if="currentRoom" />
+    <RoomList />
+    <Conversation :room="currentRoom" v-if="currentRoom || isCreateRoom" />
 
 
     <Modal title="Définir votre nom." :handleConfirm="handleConfirm" :handleCancel="null" v-if="needName">

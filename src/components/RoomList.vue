@@ -4,17 +4,12 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { v4 as uuidv4 } from 'uuid';
 import ConversationCard from './ui/ConversationCard.vue';
 import { computed, inject, onMounted, ref } from 'vue';
-import Modal from './ui/Modal.vue';
 
-const { socket, userID, username, currentRoom } = inject("AppProvider");
+const { socket, currentRoom, isCreateRoom, user } = inject("AppProvider");
 
 const rooms = ref([]);
+const notifications = ref([]);
 const searchRoom = ref("");
-const isCreateRoom = ref(false);
-
-const users = ref();
-const searchUser = ref("");
-const usersSelected = ref([]);
 
 onMounted(() => {
     socket.on("getRooms", (rRooms) => {
@@ -37,45 +32,34 @@ const roomFiltred = computed(() => {
     return rooms.value.filter((room) => room.name.indexOf(searchRoom.value) !== -1);
 });
 
-const userFiltred = computed(() => {
-    if (searchUser.value.length < 3) return null;
-    return users.value.filter((user) => user.name.indexOf(searchUser.value) !== -1);
-});
-
 const wantCreateRoom = () => {
-    socket.emit("getUsers");
-    socket.on("getUsers", (rUsers) => users.value = rUsers);
-    isCreateRoom.value = true;
-};
-
-const handleCancel = () => {
-    isCreateRoom.value = false;
-};
-
-const addUser = (user) => {
-    usersSelected.value.push({ id: user.id, name: user.name });
-    searchUser.value = user.name;
-};
-
-const createRoom = () => {
-    usersSelected.value.push({ id: userID.value, name: username.value });
-    const newRoom = {
-        name: "Conversation",
+    currentRoom.value = {
+        name: null,
         id: uuidv4(),
         messages: [],
         createdAt: new Date(),
         lastUpdate: new Date()
     };
-    socket.emit("createRoom", newRoom, usersSelected.value);
-    rooms.value.push(newRoom);
-    isCreateRoom.value = false;
-}
+    isCreateRoom.value = true;
+    socket.emit("getUsers");
+};
 
 const select = (room) => {
     if (currentRoom.value?.id) {
         socket.emit("leaveRoom", currentRoom.value.id);
     }
+    if (isCreateRoom.value) isCreateRoom.value = false;
     currentRoom.value = room;
+}
+
+const hasNotification = (target) => {
+    for (const room of user.value.rooms) {
+        if (target.id === room.id) {
+            return new Date(room.lastCheck) < new Date(target.lastUpdate) && target.messages[0].author !== user.value.id;
+        }
+    }
+
+    return false;
 }
 </script>
 
@@ -100,25 +84,9 @@ const select = (room) => {
         <div class="cl__list">
             <ConversationCard v-for="room in roomFiltred" @click="select(room)" :roomName="room?.name"
                 :lastUpdate="new Date(room?.lastUpdate).toLocaleDateString()"
-                :lastMessage="room?.messages[0]?.content ?? null" :notificationNumber="0" :isSaw="false" :isPin="false"
-                :isSelected="currentRoom?.id == room.id" class="mt-2" />
+                :lastMessage="room?.messages[0]?.content ?? null" :hasNotification="hasNotification(room)" :isSaw="false"
+                :isPin="false" :isSelected="currentRoom?.id == room.id" class="mt-2" />
         </div>
-
-
-        <Modal title="Nouvelle discussion" v-if="isCreateRoom" :handleConfirm="createRoom" :handleCancel="handleCancel">
-            <div>
-                <div class="form-control w-full max-w-xs mt-2 relative">
-                    <input type="text" placeholder="Envoyer un message à ..."
-                        class="input input-bordered w-full max-w-xs bg-slate-200" v-model="searchUser" />
-                    <ul class="dropdown-content z-[1] menu p-2 shadow bg-slate-300 rounded-box w-52" v-if="userFiltred">
-                        <li v-for="user in userFiltred" @click="addUser(user)"
-                            class="cursor-pointer hover:bg-slate-400 p-2 rounded-lg">
-                            {{ user.name }}
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </Modal>
     </div>
 </template>
 

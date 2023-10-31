@@ -6,7 +6,7 @@ defineProps({
     roomName: String,
     lastUpdate: String,
     lastMessage: String,
-    notificationNumber: Number,
+    hasNotification: Boolean,
     isSaw: Boolean,
     isPin: Boolean,
     isSelected: Boolean
@@ -23,7 +23,7 @@ const truncate = (text, maxLength) => {
 </script>
 
 <template>
-    <div class="cc__container" :class="{ 'active': isSelected}">
+    <div class="cc__container" :class="{ 'cc__active': isSelected}">
         <div class="cc__image">
             <img src="https://picsum.photos/300/300" />
         </div>
@@ -38,7 +38,7 @@ const truncate = (text, maxLength) => {
             <div class="cc__description">
                 <span class="cc__lastMessage">{{ truncate(lastMessage, 12) }}</span>
                 <div class="flex justify-center items-center">
-                    <div class="cc__notification" v-if="notificationNumber && notificationNumber > 0"> {{ notificationNumber }}</div>
+                    <div class="cc__notification" v-if="hasNotification"></div>
                     <FontAwesomeIcon :icon="faThumbTack" v-if="isPin" class="ms-2" />
                 </div>
             </div>
@@ -46,7 +46,7 @@ const truncate = (text, maxLength) => {
     </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .cc__container {
     display: flex;
     padding: 1rem;
@@ -54,6 +54,14 @@ const truncate = (text, maxLength) => {
     width: 100%;
     border-radius: 1.5rem;
     cursor: pointer;
+
+    &:hover {
+        background-color: var(--secondary);
+    }
+}
+
+.cc__active {
+    background-color: var(--secondary);
 }
 
 .cc__image {
@@ -102,8 +110,8 @@ const truncate = (text, maxLength) => {
 }
 
 .cc__notification {
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 1rem;
+    height: 1rem;
     border-radius: 100%;
     background: var(--info);
     color: var(--white);

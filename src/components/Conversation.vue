@@ -3,26 +3,33 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { faEllipsisVertical, faMattressPillow, faMicrophone, faPaperclip, faPhone, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { faPaperPlane } from '@fortawesome/free-regular-svg-icons';
 import Message from './ui/Message.vue';
-import { inject, onMounted, onUpdated, ref, watch } from 'vue';
+import { inject, onMounted, ref, watch, computed } from 'vue';
 
 const props = defineProps({
     room: Object,
 });
 
-const { userID, socket, username } = inject("AppProvider");
+const { user, socket, isCreateRoom, currentRoom } = inject("AppProvider");
 
 const messages = ref([]);
 const messageContent = ref();
 
+const searchUser = ref("");
+const contact = ref();
+const users = ref([]);
+
 watch(props, () => {
-    console.log(props.room);
-    socket.emit("joinRoom", props.room.id);
+    socket.emit("joinRoom", props.room.id, user.value.id);
     messages.value = props.room.messages;
+});
+
+socket.on("getUsers", pUsers => {
+    users.value = pUsers
 });
 
 onMounted(() => {
     messages.value = props.room.messages;
-    socket.emit("joinRoom", props.room.id);
+    socket.emit("joinRoom", props.room.id, user.value.id);
     socket.on("receivedMessage", (message) => {
         messages.value.unshift(message);
         socket.emit("seeMessage", new Date(), props.room.id);
@@ -30,18 +37,43 @@ onMounted(() => {
 });
 
 const sendMessage = () => {
-    const message = createMessagePayload()
-    socket.emit("sendMessage", message, props.room.id);
-    messages.value.unshift(message);
+    if (isCreateRoom.value) {
+        createRoom();
+        isCreateRoom.value = false;
+    } else {
+        const message = createMessagePayload();
+        socket.emit("sendMessage", message, props.room.id);
+        messages.value.unshift(message);
+    }
     messageContent.value = "";
 }
 
 const createMessagePayload = () => ({
-    authorID: userID.value,
-    author: username.value,
+    authorID: user.value.id,
+    author: user.value.name,
     content: messageContent.value,
     createdAt: new Date()
-})
+});
+
+const createRoom = () => {
+    const owner = { id: user.value.id, name: user.value.name };
+    currentRoom.value.messages.unshift(createMessagePayload());
+    currentRoom.value.name = `${contact.value.name}, ${user.value.name}`;
+    socket.emit("createRoom", currentRoom.value, [contact.value, owner]);
+    
+    contact.value = null;
+}
+
+const userFiltred = computed(() => {
+    if (searchUser.value.length < 3) return null;
+    return users.value.filter((user) => user.name.indexOf(searchUser.value) !== -1);
+});
+
+
+const chooseContact = (pUser) => {
+    contact.value = pUser;
+    searchUser.value = "";
+}
 </script>
 
   
@@ -49,11 +81,26 @@ const createMessagePayload = () => ({
 <template>
     <div class="c__container">
         <div class="flex w-full justify-between">
-            <div class="flex flex-col w-[70%]">
+            <div class="flex flex-col w-[70%]" v-if="!isCreateRoom">
                 <div class="c__title">{{ room?.name }}</div>
                 <div class="c__subtitle">{{ room?.membersInfo }}</div>
             </div>
-            <div class="c__actions">
+            <div class="flex flex-col w-[70%] relative" v-else>
+                <div>
+                    <input type="text" placeholder="Envoyer un message à ..."
+                        class="input input-bordered input-accent w-full max-w-xs" v-model="searchUser"
+                        @keyup.enter="chooseContact(userFiltred[0])" v-if="!contact"/>
+                        <div v-else class="text-2xl font-bold">{{ contact.name }}</div>
+                    <ul class="dropdown-content z-[1] menu p-2 shadow bg-slate-700 rounded-box w-52" v-if="userFiltred">
+                        <li v-for="user in userFiltred" @click="chooseContact(user)"
+                            class="cursor-pointer hover:bg-slate-600 p-2 rounded-lg">
+                            {{ user.name }}
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+            <div class="c__actions" v-if="!isCreateRoom">
                 <button class="btn btn-ghost text-2xl hover:text-white">
                     <FontAwesomeIcon :icon="faSearch" />
                 </button>
@@ -69,14 +116,14 @@ const createMessagePayload = () => ({
             </div>
         </div>
         <div class="c__messages">
-            <Message :message="message" v-for="message in messages"/>
+            <Message :message="message" v-for="message in messages" />
         </div>
         <div class="c__input-container">
             <button class="me-2" @click="() => socket.emit('joinRooms')">
                 <FontAwesomeIcon :icon="faPaperclip" />
             </button>
             <div class="c__input">
-                <input type="text" v-model="messageContent"/>
+                <input type="text" v-model="messageContent" @keyup.enter="sendMessage"/>
                 <button @click="sendMessage">
                     <FontAwesomeIcon :icon="faPaperPlane" />
                 </button>
@@ -123,7 +170,7 @@ const createMessagePayload = () => ({
     display: flex;
     justify-content: space-between;
     height: 3rem;
-     
+
     button {
         display: flex;
         justify-content: center;
@@ -158,6 +205,7 @@ const createMessagePayload = () => ({
         transition: .3s;
         font-size: 1.2rem;
         padding: .25rem 1rem;
+
         &:hover {
             background: var(--gray-200);
         }

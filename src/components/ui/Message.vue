@@ -3,12 +3,12 @@ import { faCheckDouble } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { inject } from 'vue';
 
-const { userID } = inject("AppProvider");
+const { user } = inject("AppProvider");
 const props = defineProps({
     message: Object
 });
 
-const isAuthor = () => props.message.authorID === userID.value;
+const isAuthor = () => props.message.authorID === user.value.id;
 
 const getTime = () => {
     const time = new Date(props.message.createdAt)
